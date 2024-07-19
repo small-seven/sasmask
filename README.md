@@ -1,4 +1,4 @@
-# DVERGE
+# SASMask
 This repository contains code for our TMM paper ["Stealthy Physical Masked Face Recognition Attack via Adversarial Style Optimization"](https://ieeexplore.ieee.org/abstract/document/10306334).
 
 # Dependencies
