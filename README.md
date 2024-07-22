@@ -9,7 +9,7 @@ The code is run and tested on the Artemis HPC server with multiple GPUs. Running
 We used the Microsoft COCO dataset to pre-train the mentioned styler transfer network and the CASIA-WebFace dataset to pre-train the face regconition networks. We used LFW, VGGFace2, AgeDB and CFP as the tested datasets. 
 
 # Usage
-Examples of training and evaluation scripts can be found in `train_stymask.py`.
+Examples of training and evaluation scripts can be found in `train_stymask.py` and `test_style_attack.py`.
 
 # Reference
 If you find our paper/this repo useful for your research, please consider citing our work.
