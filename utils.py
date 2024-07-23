@@ -72,9 +72,9 @@ def choose_data(target_name):
 def get_identities():
     # mul heads
     f = open('50targets.txt')
-    identities = f.readlines()  # 直接将文件中按行读到list里
-    f.close()  # 关闭文件
-    identities = [x.strip() for x in identities]  # 去除list中的'\n'
+    identities = f.readlines()
+    f.close()
+    identities = [x.strip() for x in identities]
     return identities
 
 
@@ -224,10 +224,7 @@ def fix_randon_seed(seed):
 
 def compare_psnr(img1, img2, maxvalue=255):
     '''
-    一般 opencv 读图是 uint8, 漏掉转数据格式会导致计算出错;
-    有些代码会在 mse==0 的时候直接返回 100, 但很明显 psnr 并没有最大值为 100 的说法,
-    通常也不会算两张相同图像的 psnr, 干脆和 skimage 一样不写 mse==0 的情况
-    用法：
+    Usage：
     img1, img2 = Image.open(img_name1), Image.open(img_name2)
     psnr = compare_psnr(np.array(img1), np.array(img2))
     '''

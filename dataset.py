@@ -28,11 +28,11 @@ class MyDataset(torch.utils.data.Dataset):
             transforms.ToTensor(),
         ])
         self.test_paths = []
-        # 读取pairs文件
+
 
         with open(self.file_list) as f:
             pairs = f.read().splitlines()[:]
-        # 将路径存储
+
         for i in range(len(pairs)):
             self.test_paths.append(pairs[i])
 
@@ -48,7 +48,7 @@ class MyDataset(torch.utils.data.Dataset):
 
         img_test_Image = cv2Image(img_test)
         imglist = [img_test_Image, mask_bin_Image, mask_Image]
-        # 图片预处理
+
         if self.transform is not None:
             for i in range(len(imglist)):
                 imglist[i] = self.transform(imglist[i])

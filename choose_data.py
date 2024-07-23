@@ -93,9 +93,9 @@ def choose_data(target_name):
 def get_identities():
     # mul heads
     f = open('50targets.txt')
-    identities = f.readlines()  # 直接将文件中按行读到list里
-    f.close()  # 关闭文件
-    identities = [x.strip() for x in identities]  # 去除list中的'\n'
+    identities = f.readlines()
+    f.close()
+    identities = [x.strip() for x in identities] 
     return identities
 
 
