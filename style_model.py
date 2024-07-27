@@ -9,43 +9,10 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
-def norm(image):
-    mean = [0.485, 0.456, 0.406]
-    std = [0.229, 0.224, 0.225]
-    output = torch.stack([(image[0][i] - mean[i]) / std[i] for i in range(3)])
-    return output.unsqueeze(0)
-
-
-def gram_matrix(input):
-    '''
-    from: https://pytorch.org/tutorials/advanced/neural_style_tutorial.html#style-loss
-    '''
-    a, b, c, d = input.size()  # a=batch size(=1)
-    # b=number of feature maps
-    # (c,d)=dimensions of a f. map (N=c*d)
-
-    features = input.view(a * b, c * d)  # resise F_XL into \hat F_XL
-
-    G = torch.mm(features, features.t())  # compute the gram product
-
-    # we 'normalize' the values of the gram matrix
-    # by dividing by the number of element in each feature maps.
-    return G.div(a * b * c * d)
-
-
-def loss_calc(content, style, pastiche, lambda_c, lambda_s):
-    c = F.mse_loss(pastiche.relu4_3, content.relu4_3)
-
-    s1 = F.mse_loss(gram_matrix(pastiche.relu1_2), gram_matrix(style.relu1_2))
-    s2 = F.mse_loss(gram_matrix(pastiche.relu2_2), gram_matrix(style.relu2_2))
-    s3 = F.mse_loss(gram_matrix(pastiche.relu3_3), gram_matrix(style.relu3_3))
-    s4 = F.mse_loss(gram_matrix(pastiche.relu4_3), gram_matrix(style.relu4_3))
-    #    print("Content:",c.data.item())
-    #    print("Style:",s1.data.item()+s2.data.item()+s3.data.item()+s4.data.item())
-
-    loss = lambda_c * c + lambda_s * (s1 + s2 + s3 + s4)
-
-    return loss
+mean = torch.Tensor((0.485, 0.456, 0.406)).unsqueeze(-1).unsqueeze(-1).cuda()
+std = torch.Tensor((0.229, 0.224, 0.225)).unsqueeze(-1).unsqueeze(-1).cuda()
+unnormalize = lambda x: x * std + mean
+normalize = lambda x: (x - mean) / std
 
 
 class myInstanceNorm2d(nn.InstanceNorm2d):
@@ -69,23 +36,40 @@ class CIN(nn.Module):
     def __init__(self, style_num, in_channels):
         super(CIN, self).__init__()
         self.norms = nn.ModuleList([myInstanceNorm2d(in_channels, affine=True) for i in range(style_num)])
-        self.mixNorm = myInstanceNorm2d(in_channels, affine=True);
+        self.in_channels = in_channels
+        self.mixNorm = myInstanceNorm2d(in_channels, affine=True)
+        # self.instance_norm = nn.InstanceNorm2d(in_channels, affine=False)
+        # self.weights = nn.Parameter(torch.ones(style_num))
+        # self.bias = nn.Parameter(torch.zeros(style_num))
 
-    def forward(self, x, style_ids=0, style_weights=[0], mix=False):
-        if self.training or not mix:
-            out = self.norms[style_ids](x)
+        # self.mixNorm = myInstanceNorm2d(in_channels, affine=False)
+
+    def forward(self, x, style_weights, mix=True):
+        device = x.device
+        if not mix:
+            out = torch.stack([self.norms[torch.nonzero(style_weights)[i][1]](x[i]) for i in range(x.size(0))])
         else:
-            beta_mix = 0
-            gamma_mix = 0
-            for i in range(len(style_weights)):
-                beta_mix += self.norms[i].getBeta() * style_weights[i]
-                gamma_mix += self.norms[i].getGamma() * style_weights[i]
-            self.mixNorm.setGamma(gamma_mix)
-            self.mixNorm.setBeta(beta_mix)
-            out = self.mixNorm(x)
+            beta_mix = torch.zeros(x.size(0), self.in_channels).to(device)
+            gamma_mix = torch.zeros(x.size(0), self.in_channels).to(device)
+            for i in range(style_weights.size(0)):
+                for j in range(style_weights.size(1)):
+                    beta_mix[i] = beta_mix[i].clone() + self.norms[j].getBeta() * style_weights[i, j]
+                    gamma_mix[i] = gamma_mix[i].clone() + self.norms[j].getGamma() * style_weights[i, j]
 
-        #         print(self.norms[0].getGamma())
+            out = nn.InstanceNorm2d(self.in_channels, affine=False)(x)
+            # print(out.size())
+            for i in range(out.size(0)):
+                for j in range(out.size(1)):
+                    out[i, j, :, :] = gamma_mix[i, j] * out[i, j, :, :].clone() + beta_mix[i, j]
         return out
+    #     mix_weights = 0
+    #     mix_bias = 0
+    #     out = self.instance_norm(x)
+    #     for i in range(style_weights.size(0)):
+    #         mix_weights += style_weights[i] * self.weights[i]
+    #         mix_bias += style_weights[i] * self.bias[i]
+    #     out = mix_weights * out + mix_bias
+    #     return out
 
     # def addStyle(self, num_styles, in_channels):
     #     num_norms = len(self.norms)
@@ -96,7 +80,7 @@ class CIN(nn.Module):
 
 
 class StyleModel(nn.Module):
-    def __init__(self, num_styles):
+    def __init__(self, num_styles=10):
         super(StyleModel, self).__init__()
         self.pad0 = nn.ReflectionPad2d(4)
         self.conv0 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=9, stride=1, padding=0)
@@ -124,49 +108,49 @@ class StyleModel(nn.Module):
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=3, kernel_size=9, stride=1, padding=0)
         self.CIN3 = CIN(num_styles, in_channels=3)
 
-    def forward(self, x, style_ids=0, style_weights=[0], mix=False):
+    def forward(self, x, style_weights=torch.ones((10,)), mix=False):
         out = self.pad0(x)
         out = self.conv0(out)
-        out = self.CIN0(out, style_ids, style_weights, mix)
+        out = self.CIN0(out, style_weights, mix)
         out = F.relu(out)
 
         out = self.pad1(out)
         out = self.conv1(out)
-        out = self.CIN1(out, style_ids, style_weights, mix)
+        out = self.CIN1(out, style_weights, mix)
         out = F.relu(out)
 
         out = self.pad1(out)
         out = self.conv2(out)
-        out = self.CIN2(out, style_ids, style_weights, mix)
+        out = self.CIN2(out, style_weights, mix)
         out = F.relu(out)
 
         for i in range(5):
             res_in = out
             out = self.pad2(out)
             out = self.resBlock1[i](out)
-            out = self.CINres1[i](out, style_ids, style_weights, mix)
+            out = self.CINres1[i](out, style_weights, mix)
             out = F.relu(out)
 
             out = self.pad2(out)
             out = self.resBlock2[i](out)
-            out = self.CINres2[i](out, style_ids, style_weights, mix)
+            out = self.CINres2[i](out, style_weights, mix)
             out = res_in + out
 
         out = F.interpolate(out, scale_factor=2, mode='nearest')
         out = self.pad2(out)
         out = self.upsample0(out)
-        out = self.CINup0(out, style_ids, style_weights, mix)
+        out = self.CINup0(out, style_weights, mix)
         out = F.relu(out)
 
         out = F.interpolate(out, scale_factor=2, mode='nearest')
         out = self.pad2(out)
         out = self.upsample1(out)
-        out = self.CINup1(out, style_ids, style_weights, mix)
+        out = self.CINup1(out, style_weights, mix)
         out = F.relu(out)
 
         out = self.pad0(out)
         out = self.conv3(out)
-        out = self.CIN3(out, style_ids, style_weights, mix)
+        out = self.CIN3(out, style_weights, mix)
         out = torch.sigmoid(out)
 
         return out

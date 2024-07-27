@@ -4,7 +4,6 @@ from torchvision.models import vgg16
 from collections import namedtuple
 
 
-
 class Vgg16(torch.nn.Module):
     '''
     https://discuss.pytorch.org/t/accessing-intermediate-layers-of-a-pretrained-network-forward/12113
