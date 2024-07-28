@@ -5,7 +5,7 @@ This repository contains code for our TMM paper ["Stealthy Physical Masked Face 
 We listed the dependencies in the `requirements.txt`.
 
 # Data and pre-trained models
-We used the Microsoft COCO dataset to pre-train the mentioned styler transfer network and the CASIA-WebFace dataset to pre-train the face regconition networks. We used LFW, VGGFace2, AgeDB and CFP as the tested datasets. The pre-trained face recognition models and styler transfer models can be found [here](https://pan.baidu.com/s/1GQEESfB25nloQywj1z6NGQ?pwd=u3yg). 
+We used the Microsoft COCO dataset to pre-train the mentioned styler transfer network and the CASIA-WebFace dataset to pre-train the face regconition networks. We used LFW, VGGFace2, AgeDB and CFP as the tested datasets. The pre-trained face recognition models and styler transfer models can be found [here](https://drive.google.com/drive/folders/1eXhHl7YnBgUuHv473_-qDodd9f3IogYa?usp=sharing). 
 
 # Usage
 Examples of training and evaluation scripts can be found in:
