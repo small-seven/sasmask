@@ -17,6 +17,7 @@ and
 python test_stymask.py
 ```
 The default arguements are set in `config.py`. If need to try other parameters, please modify it directly.
+
 ps: download the pretrained via the above link and create a new folder `checkpoint` in the project, and inside the `checkpoint`, create two folders, i.e., `face_models` and `style_models`. Put the face model into the `face_models` folder and the style model into the `style_models` folder. 
 
 # Reference
