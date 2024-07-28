@@ -18,7 +18,8 @@ python test_stymask.py
 ```
 The default arguements are set in `config.py`. If need to try other parameters, please modify it directly.
 
-ps: download the pretrained via the above link and create a new folder `checkpoint` in the project, and inside the `checkpoint`, create two folders, i.e., `face_models` and `style_models`. Put the face model into the `face_models` folder and the style model into the `style_models` folder. 
+ps: 1. download the pretrained models via the above link and create a new folder `checkpoint` in the project, and inside the `checkpoint`, create two folders, i.e., `face_models` and `style_models`. Put the face model into the `face_models` folder and the style model into the `style_models` folder.
+2. download the files in `data` folder, create a `data` folder in the project and unzip the lfw data in the `data` folder. The lfw dataset are from the lfw official website. 
 
 # Reference
 If you find our paper/this repo useful for your research, please consider citing our work:
